@@ -53,17 +53,23 @@ export async function sendFCM(env, { tokens, topic, title, body, metadata, logge
     // Platform specific overrides for sound and priority
     const platformConfig = {
         android: {
+            priority: "HIGH",
             notification: {
                 sound: "default",
-                priority: "high",
-                channelId: "high_importance_channel"
+                channelId: "high_importance_channel",
+                priority: "HIGH",
+                defaultSound: true,
+                defaultVibrateTimings: true
             }
         },
         apns: {
+            headers: {
+                "apns-priority": "10"
+            },
             payload: {
                 aps: {
                     sound: "default",
-                    contentAvailable: true
+                    badge: 1
                 }
             }
         }
@@ -94,21 +100,31 @@ export async function sendFCM(env, { tokens, topic, title, body, metadata, logge
     const results = [];
 
     for (const msg of messages) {
-        const sendResponse = await fetch(`https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${accessToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ message: msg })
-        });
+        try {
+            const sendResponse = await fetch(`https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: msg })
+            });
 
-        const sendResult = await sendResponse.json();
-        results.push({ target: msg.topic || msg.token, status: sendResponse.status, response: sendResult });
+            const sendResult = await sendResponse.json();
+            
+            if (!sendResponse.ok) {
+                if (logger) logger.error(`❌ FCM Send Error for ${msg.topic || 'token'}: ${JSON.stringify(sendResult)}`);
+            }
+            
+            results.push({ target: msg.topic || msg.token, status: sendResponse.status, response: sendResult });
+        } catch (err) {
+            if (logger) logger.error(`❌ FCM Fetch Error: ${err.message}`);
+            results.push({ error: err.message });
+        }
     }
 
     if (logger) {
-        logger.info(`✅ FCM: Sent ${results.length} targets with sound.`);
+        logger.info(`✅ FCM Hook: Processed ${results.length} messages.`);
     }
     
     return results;
