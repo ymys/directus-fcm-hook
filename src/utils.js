@@ -57,7 +57,6 @@ export async function sendFCM(env, { tokens, topic, title, body, metadata, logge
             notification: {
                 sound: "default",
                 channelId: "high_importance_channel",
-                priority: "HIGH",
                 defaultSound: true,
                 defaultVibrateTimings: true
             }
