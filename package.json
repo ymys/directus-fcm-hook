@@ -20,6 +20,10 @@
 	],
 	"directus:extension": {
 		"type": "bundle",
+		"path": {
+			"app": "dist/app.js",
+			"api": "dist/index.js"
+		},
 		"entries": [
 			{
 				"type": "hook",
