@@ -47,4 +47,34 @@ export default ({ filter, action }, { env, logger, services }) => {
             logger.error(`FCM Hook Error: ${error.message}`);
         }
     });
+
+    action('broadcast.items.create', async (meta, context) => {
+        const payload = meta.payload;
+        let targetTopic = 'all';
+
+        // 1. Determine target topic
+        if (payload.target_role) {
+            targetTopic = `role_${payload.target_role}`;
+        } else if (payload.topic) {
+            // If they selected a specific topic from broadcast_topics
+            targetTopic = payload.topic;
+        }
+
+        try {
+            logger.info(`FCM Hook: Broadcasting to topic ${targetTopic}`);
+
+            await sendFCM(env, {
+                topic: targetTopic,
+                title: payload.judul || 'Pengumuman Baru',
+                body: payload.pesan ? payload.pesan.replace(/<[^>]*>?/gm, '') : 'Anda menerima pengumuman baru.',
+                metadata: {
+                    broadcast_id: meta.key,
+                    type: 'broadcast'
+                },
+                logger
+            });
+        } catch (error) {
+            logger.error(`FCM Hook Broadcast Error: ${error.message}`);
+        }
+    });
 };

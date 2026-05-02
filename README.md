@@ -19,11 +19,21 @@ Used to store FCM registration tokens for your users.
 - `token`: (String) The FCM registration token.
 
 ### 2. `inbox` Collection
-The collection that triggers the notifications.
+The collection that triggers personal notifications.
 - `penerima`: (Many-to-One to `directus_users`) The recipient of the message.
 - `judul`: (String) The title of the notification.
 - `pesan`: (Text/HTML) The body of the notification.
 - `tipe_pesan`: (String, Optional) Used for routing logic in the app.
+
+### 3. `broadcast` Collection
+Used for sending notifications to multiple users at once.
+- `topic`: (Many-to-One to `broadcast_topics`) If set, sends to an FCM Topic.
+- `target_role`: (Many-to-One to `directus_roles`) If set, sends to all users with this role.
+- `judul`: (String) The title of the notification.
+- `pesan`: (Text/HTML) The body of the notification.
+
+> [!NOTE]
+> If both `topic` and `target_role` are empty in a broadcast, the notification will be sent to **ALL** users with registered devices.
 
 ## Installation
 

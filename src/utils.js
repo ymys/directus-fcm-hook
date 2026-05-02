@@ -36,43 +36,59 @@ export async function getGoogleAccessToken(env) {
     return resData.access_token;
 }
 
-export async function sendFCM(env, { tokens, title, body, metadata, logger }) {
+export async function sendFCM(env, { tokens, topic, title, body, metadata, logger }) {
     const FCM_PROJECT_ID = env.FCM_PROJECT_ID;
     
     if (!FCM_PROJECT_ID) throw new Error('FCM_PROJECT_ID missing');
 
     const accessToken = await getGoogleAccessToken(env);
-    const results = [];
+    const messages = [];
 
-    for (const token of tokens) {
-        const fcmPayload = {
-            message: {
+    // Prepare messages: either one for a topic, or multiple for tokens
+    if (topic) {
+        messages.push({
+            topic: topic,
+            notification: {
+                title: title || "Pengumuman",
+                body: body || "Ada pengumuman baru untuk Anda."
+            },
+            data: {
+                routing_info: metadata ? JSON.stringify(metadata) : "{}"
+            }
+        });
+    } else if (tokens && Array.isArray(tokens)) {
+        for (const token of tokens) {
+            messages.push({
                 token: token,
                 notification: {
                     title: title || "Notifikasi Baru",
-                    body: body || "Anda menerima pesan."
+                    body: body || "Anda menerima pesan baru."
                 },
                 data: {
                     routing_info: metadata ? JSON.stringify(metadata) : "{}"
                 }
-            }
-        };
+            });
+        }
+    }
 
+    const results = [];
+
+    for (const msg of messages) {
         const sendResponse = await fetch(`https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(fcmPayload)
+            body: JSON.stringify({ message: msg })
         });
 
         const sendResult = await sendResponse.json();
-        results.push({ token, status: sendResponse.status, response: sendResult });
+        results.push({ target: msg.topic || msg.token, status: sendResponse.status, response: sendResult });
     }
 
     if (logger) {
-        logger.info(`✅ FCM: Sent ${results.length} notifications.`);
+        logger.info(`✅ FCM: Sent ${results.length} targets.`);
     }
     
     return results;
