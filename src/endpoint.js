@@ -10,13 +10,13 @@ export default (router, { env, logger }) => {
             return res.status(401).json({ error: 'Unauthorized. Cek header x-fcm-secret.' });
         }
 
-        const { tokens, title, body, metadata } = req.body;
-        if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
-            return res.status(400).json({ error: 'Payload harus memiliki array "tokens".' });
+        const { tokens, topic, title, body, metadata } = req.body;
+        if ((!tokens || !Array.isArray(tokens) || tokens.length === 0) && !topic) {
+            return res.status(400).json({ error: 'Payload harus memiliki "tokens" (array) atau "topic" (string).' });
         }
 
         try {
-            const results = await sendFCM(env, { tokens, title, body, metadata, logger });
+            const results = await sendFCM(env, { tokens, topic, title, body, metadata, logger });
             res.json({ success: true, sent_count: results.length, details: results });
         } catch (error) {
             logger.error('❌ Error mengirim notifikasi FCM:', error);

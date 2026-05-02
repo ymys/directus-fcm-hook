@@ -44,14 +44,36 @@ export async function sendFCM(env, { tokens, topic, title, body, metadata, logge
     const accessToken = await getGoogleAccessToken(env);
     const messages = [];
 
-    // Prepare messages: either one for a topic, or multiple for tokens
+    // Base notification config
+    const notificationConfig = {
+        title: title || "Pengumuman",
+        body: body || "Ada pengumuman baru untuk Anda."
+    };
+
+    // Platform specific overrides for sound and priority
+    const platformConfig = {
+        android: {
+            notification: {
+                sound: "default",
+                priority: "high",
+                channelId: "high_importance_channel"
+            }
+        },
+        apns: {
+            payload: {
+                aps: {
+                    sound: "default",
+                    contentAvailable: true
+                }
+            }
+        }
+    };
+
     if (topic) {
         messages.push({
             topic: topic,
-            notification: {
-                title: title || "Pengumuman",
-                body: body || "Ada pengumuman baru untuk Anda."
-            },
+            notification: notificationConfig,
+            ...platformConfig,
             data: {
                 routing_info: metadata ? JSON.stringify(metadata) : "{}"
             }
@@ -60,10 +82,8 @@ export async function sendFCM(env, { tokens, topic, title, body, metadata, logge
         for (const token of tokens) {
             messages.push({
                 token: token,
-                notification: {
-                    title: title || "Notifikasi Baru",
-                    body: body || "Anda menerima pesan baru."
-                },
+                notification: notificationConfig,
+                ...platformConfig,
                 data: {
                     routing_info: metadata ? JSON.stringify(metadata) : "{}"
                 }
@@ -88,7 +108,7 @@ export async function sendFCM(env, { tokens, topic, title, body, metadata, logge
     }
 
     if (logger) {
-        logger.info(`✅ FCM: Sent ${results.length} targets.`);
+        logger.info(`✅ FCM: Sent ${results.length} targets with sound.`);
     }
     
     return results;
