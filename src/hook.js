@@ -52,6 +52,7 @@ export default ({ filter, action }, { env, logger, services }) => {
         const payload = meta.payload;
         const topicId = payload.topic;
         const targetRole = payload.target_role;
+        const targetPolicy = payload.target_policy;
 
         try {
             const userDevicesService = new ItemsService('user_devices', {
@@ -81,14 +82,38 @@ export default ({ filter, action }, { env, logger, services }) => {
                     filter: {}
                 };
 
+                const filters = [];
+
                 if (targetRole) {
-                    query.filter = {
+                    filters.push({
                         user_id: {
                             role: {
                                 _eq: targetRole
                             }
                         }
-                    };
+                    });
+                }
+
+                if (targetPolicy) {
+                    filters.push({
+                        user_id: {
+                            policies: {
+                                policy: {
+                                    _eq: targetPolicy
+                                }
+                            }
+                        }
+                    });
+                }
+
+                if (filters.length > 0) {
+                    if (filters.length === 1) {
+                        query.filter = filters[0];
+                    } else {
+                        query.filter = {
+                            _or: filters
+                        };
+                    }
                 }
 
                 const devices = await userDevicesService.readByQuery(query);
